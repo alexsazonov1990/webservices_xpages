@@ -1,0 +1,208 @@
+//Создадим документ в базе
+
+var doc = database.createDocument(); // cоздадим документ в базе для отслеживания лога
+
+var db = session.getDatabase("scz5", "gp/arjservice.nsf") //архив услуг
+
+var ViewArj = db.getView("(AllServiceByName2)") //получим вьюху в архиве услуг
+
+doc.replaceItemValue("Form", "LogRequestDMS")
+var DBname = db.getTitle() //получим имя базы
+
+var ViewName = ViewArj.getName() 
+//Притянем в запрос
+
+//обрежем первый и последний пробел с даты рождения и договора
+
+var FIORepl = requestScope.FIO
+var BirdDateRepl = requestScope.BirdDay
+var DogNumberRepl = requestScope.DogNumber 
+
+FioReplace = FIORepl.replace(/^\s*/,'').replace(/\s*$/,'')
+
+BirdDateReplace = BirdDateRepl.replace(/^\s*/,'').replace(/\s*$/,'')
+
+DogNumberReplace =  DogNumberRepl.replace(/^\s*/,'').replace(/\s*$/,'')
+
+
+var FULLFIO = FioReplace + BirdDateReplace //ключ получили ФИО + дата 
+
+
+doc.replaceItemValue("FIONOPROBEL",FioReplace)
+
+doc.replaceItemValue("BDATENOPROBEL",BirdDateReplace)
+
+
+
+var BirdDate = BirdDateReplace
+
+var DogNumber = DogNumberReplace //номер договора получим
+
+doc.replaceItemValue("FIO",FioReplace)
+
+//Здесь блок что отражать в логе запроса
+
+doc.replaceItemValue("FIO2",FULLFIO) //в лог запрос записали
+//doc.replaceItemValue("BirdDay",requestScope.BirdDay)
+doc.replaceItemValue("DbTitle",DBname)
+doc.replaceItemValue("VievName",ViewName)
+//сохраним
+doc.save()
+
+//запишем количество отобранных доков
+var dc = ViewArj.getAllDocumentsByKey(FULLFIO,true)
+doc.replaceItemValue("Count",dc.getCount()) //количество найденых услуг пишем
+doc.replaceItemValue("BirdDate",BirdDate) //дату рождения пишем в лог
+doc.replaceItemValue("DogNumber",DogNumber) //Номер договора запишем в лог
+doc.save()	
+
+//если доков нет запишем в запрос 0
+if (dc.getCount() == 0) { 
+	doc.replaceItemValue("Count","Не найдено услуг")
+	doc.save()	
+}
+
+if (DogNumber == "") { 
+	doc.replaceItemValue("DogNumber","Не вводили номер договора")
+	doc.save()	
+}
+
+var SerPrice = 0 
+print ("Поступил запрос о проверке суммы всех услуг за месяц по ФИО")
+print("Запрос в базу:" + DBname + ".Для: " + FULLFIO + ".Count: " + dc.getCount() )
+
+//вообщем толи коллекцию еще раз писать толи....
+
+var doc1 = dc.getFirstDocument();
+while (doc1 != null) { //пока все доки не кончаться
+	
+	var s = doc1.getItemValueString("dogtype")
+		
+	//проверка на дог тип
+
+		if (s == "1") { 
+			print("Есть платная услуга(не по ДМС) ее не считаем:" + doc1.getItemValueDouble("ServicePrice"))
+			var tmpdoc = dc.getNextDocument();
+			doc1 = tmpdoc;
+			//var SerPrice = 0 
+			//var SerPrice = 0 
+		}else{
+	
+	//print("Услуги по ДМС: " + doc1.getItemValueDouble("ServicePrice") + " руб.")
+	//col = col + 1
+    //print("код: " + doc1.getItemValueString("ServiceCode"))
+    
+    var SerPrice = SerPrice + doc1.getItemValueDouble("ServicePrice") 
+	var tmpdoc = dc.getNextDocument();
+	doc1.recycle();
+	doc1 = tmpdoc;
+  } 
+}
+
+//---проверим сумму конкретно по договору--//
+var SerPriceDog = 0 
+var doc2 = dc.getFirstDocument();
+while (doc2 != null) { //пока все доки не кончаться
+	
+	//Cюда дописать условие фильтрующие договор
+	
+	var s = doc2.getItemValueString("dogtype")
+	var TreatyDogNumber = doc2.getItemValueString("NumberTreaty") //получим номер договора из документа
+
+	//проверка на дог тип = физ лицо то переходим к следующему документу в коллекции
+
+		if (TreatyDogNumber != DogNumber) { 
+			//print("Есть одна услуга платная (не по ДМС) ее не считаем:" + doc1.getItemValueDouble("ServicePrice"))
+			var tmpdoc1 = dc.getNextDocument();
+			doc2 = tmpdoc1;
+			//var SerPriceDog = 0 
+			//var SerPrice = 0 
+		}else{
+	
+	// print("Услуги по ДМС: " + doc1.getItemValueDouble("ServicePrice") + " руб.")
+    
+    var SerPriceDog = SerPriceDog + doc2.getItemValueDouble("ServicePrice") 
+	
+	var tmpdoc1 = dc.getNextDocument();
+	
+	doc2.recycle();
+	
+	
+	doc2 = tmpdoc1;
+  } 
+ 
+}
+
+doc.replaceItemValue("SerPriceAll",Number(SerPrice)) //добавим поле с общей суммой всех услуг за месяц
+doc.replaceItemValue("SerPriceAllDogNumb",Number(SerPriceDog))
+doc.save()	
+
+//ну и самое главное ради чего все затевалось, запишем в поле.
+
+print("Общая стоимость услуг по ДМС: " + SerPrice + " руб." )
+
+if (requestScope.FIO != "") {
+
+requestScope.FullFioAll = requestScope.FIO
+
+}else{
+
+ requestScope.FullFioAll = "ФИО не заполнено"
+
+}
+
+requestScope.ForFio = "Для:"
+
+  requestScope.BirdDayString = "Дата рождения:"
+  
+ if (requestScope.BirdDay !="") {
+ 
+  requestScope.BirdDayClientAll =  requestScope.BirdDay
+  
+  }else{
+  
+  requestScope.BirdDayClientAll = "Дата рождения не заполнена"
+  }
+ 
+  requestScope.SummAllServiceDMS = "Cумма всех услуг по ДМС(по всем договорам) за текущий месяц:"
+//requestScope.TreatyBalance = SerPrice 
+
+
+if (dc.getCount() != 0) {
+
+requestScope.SumServ = SerPrice
+
+}else{
+
+requestScope.SumServNothing = "Услуг по фамилии и дате рождения НЕ НАЙДЕНО ,проверьте введенные данные, и повторите попытку"
+
+
+} 
+
+//Запишем по какому договору
+
+requestScope.SummAllServiceDMS2 = "Cумма услуг за текущий месяц по договору: " + DogNumber 
+
+//Если не заполнили номер договора то тянем сумму по нему, если нет пишем что "не введен номер договора"
+
+if (DogNumber != "") {
+
+requestScope.SumServ2 = SerPriceDog  //сумму по договору запишем
+
+}else{
+
+requestScope.SumServNothing2 = "Не введен номер договора"
+
+} 
+
+//если услуг нет по запросу
+
+//if (dc.getCount() != 0) {
+
+//requestScope.SumServ2 = SerPriceDog
+
+//}else{
+
+//requestScope.SumServNothing2 = "Услуг по фамилии и дате рождения НЕ НАЙДЕНО ,проверьте введенные данные, и повторите попытку"
+
+//}
