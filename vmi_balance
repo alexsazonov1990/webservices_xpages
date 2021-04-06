@@ -1,4 +1,4 @@
-//Создадим документ в базе
+////checking the balance of funds under the VMI//////
 
 var doc = database.createDocument(); // cоздадим документ в базе для отслеживания лога
 
