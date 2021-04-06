@@ -1,0 +1,267 @@
+//Create_users
+
+//Создадим документ в базе
+var db = session.getDatabase("scz5", "gp/requestuser.nsf")
+
+var doc = db.createDocument(); // cоздадим документ в базе для отслеживания лога
+
+doc.replaceItemValue("Form", "LogCreateUsers")
+
+//Создаем заявку на пользователя, пишем в лог все
+
+doc.replaceItemValue("UserFio",requestScope.userFIO) //ФИО
+doc.replaceItemValue("Position",requestScope.Position) //Должность
+doc.replaceItemValue("WorkDate",requestScope.WorkDate) //Дата начала работы
+doc.replaceItemValue("leadership",requestScope.leadership) //Руководитель
+doc.replaceItemValue("TabNumber",requestScope.TabNumber) //табельный номер
+doc.replaceItemValue("Department",requestScope.Department) //Подразделение
+doc.replaceItemValue("DopProgramm1",requestScope.DopProgramm1) //доп программ1
+doc.replaceItemValue("DopProgramm2",requestScope.DopProgramm2) //доп программ2
+
+
+
+doc.replaceItemValue("telone",requestScope.telone) 
+doc.replaceItemValue("kabone",requestScope.kabone) 
+doc.replaceItemValue("strone",requestScope.strone) 
+
+doc.replaceItemValue("teltwo",requestScope.teltwo) 
+doc.replaceItemValue("kabtwo",requestScope.kabtwo) 
+doc.replaceItemValue("strtwo",requestScope.strtwo) 
+
+doc.replaceItemValue("telthree",requestScope.telthree) 
+doc.replaceItemValue("kabthree",requestScope.kabthree) 
+doc.replaceItemValue("strthree",requestScope.strthree) 
+
+
+var otpravlena = "Отправлена"  // заявка отправлена
+var complete = "Завершена" // регистрация завершена
+
+
+//Блок заполнения телефона
+
+//здесь в теории написать автоматическое заполнение телефона ориентир кабинет и корпус
+doc.replaceItemValue("status",otpravlena) //доп программ3
+doc.save()
+
+//Блок отправки заявки на почту  + пометка статуса 
+var Principal = "newone@scz.ru"
+
+//var adress = "sazonov@scz.ru;sazonov@scz.ru"
+
+//var sendto = "sazonov@scz.ru";
+
+//var sendto = requestScope.sendto //new java.util.Vector
+//Формируем письмо для всех остальных
+//print(sendto)
+var db1:NotesDatabase = session.getDatabase("scz5", "mail.box");
+var memo:NotesDocument = db1.createDocument();
+
+//var memo:NotesDocument = database.createDocument();
+
+memo.appendItemValue("Form", "Memo");
+
+memo.appendItemValue("Subject", "Заявка на нового сотрудника:" + requestScope.Position + "," + requestScope.userFIO + ",Таб: " + requestScope.TabNumber);
+ 
+memo.appendItemValue("Principal", Principal);
+
+memo.appendItemValue("SMTPOriginator",Principal);
+
+memo.appendItemValue("ReplyTo", Principal);
+
+memo.appendItemValue("From", Principal);
+
+memo.appendItemValue("InetFrom", Principal);
+
+memo.appendItemValue("INetSendTo", "");
+
+memo.appendItemValue("Sender", Principal);
+
+memo.appendItemValue("Importance", "1");
+
+memo.appendItemValue("tmpDisplayFrom_Preview",Principal);
+
+memo.appendItemValue("DisplaySent", "Post agent");
+
+memo.appendItemValue("qSent", "1");
+
+memo.appendItemValue("SendTo","sazonov@scz.ru")
+                               
+//Формируем письмо в СИТ 
+
+var db2:NotesDatabase = session.getDatabase("scz5", "mail.box");
+var memo:NotesDocument = db2.createDocument();
+
+memo.appendItemValue("Form", "Memo");
+
+memo.appendItemValue("Subject", "Заявка на нового сотрудника:" + requestScope.Position + "," + requestScope.userFIO + ",Таб: " + requestScope.TabNumber);
+ 
+memo.appendItemValue("Principal", Principal);
+
+memo.appendItemValue("SMTPOriginator",Principal);
+
+memo.appendItemValue("ReplyTo", Principal);
+
+memo.appendItemValue("From", Principal);
+
+memo.appendItemValue("InetFrom", Principal);
+
+memo.appendItemValue("INetSendTo", "");
+
+memo.appendItemValue("Sender", Principal);
+
+memo.appendItemValue("Importance", "1");
+
+memo.appendItemValue("tmpDisplayFrom_Preview",Principal);
+
+memo.appendItemValue("DisplaySent", "Post agent");
+
+memo.appendItemValue("qSent", "1");
+
+memo.appendItemValue("SendTo","help@scz.ru"); 
+
+memo.appendItemValue("Recipients","help@scz.ru"); 
+
+
+//посылаем конкретно на группу СИТ 
+//Создание новой страницы по аналогии с предыдущей, чтобы прикрутить на на нее ссылку
+
+//sessionScope.docUnid = rowData.getDocument().getUniversalID(); //получим 
+
+function p(stuff) {
+	print("<<<" + stuff + ">>>");
+}
+
+var url : XSPUrl;
+
+try {
+	url = new XSPUrl("");
+	url.setScheme("http");
+	url.setHost("lotus-nav.scz.local/");
+	url.setPath("gp/webinterface.nsf/CreateUsers.xsp");
+	p(url.toString());
+} catch(e) {
+	p("Error = " + e);
+}
+
+//Создание ссылки в почту
+
+
+var RT = memo.createRichTextItem("Body")
+
+//ФИО
+
+RT.appendText("___________________________________________")
+RT.addNewLine(2)
+RT.appendText("ФИО: " + requestScope.userFIO)
+RT.addNewLine(1)
+
+RT.appendText("___________________________________________")
+RT.addNewLine(2)
+//строение кабинет тел
+RT.appendText("РАБОЧЕЕ МЕСТО-1:")
+RT.appendText("Строение: " + requestScope.strone + " Кабинет: " + requestScope.kabone + " Тел: " + requestScope.telone)
+RT.addNewLine(2)
+
+RT.appendText("РАБОЧЕЕ МЕСТО-2:")
+RT.appendText("Строение: " + requestScope.strtwo + " Кабинет: " + requestScope.kabtwo + " Тел: " + requestScope.teltwo)
+RT.addNewLine(2)
+
+
+RT.appendText("РАБОЧЕЕ МЕСТО-3:")
+RT.appendText("Строение: " + requestScope.strthree + " Кабинет: " + requestScope.kabthree + " Тел: " + requestScope.telthree)
+RT.addNewLine(2)
+RT.appendText("___________________________________________")
+
+RT.addNewLine(2)
+//должность
+RT.appendText("Должность: " + requestScope.Position)
+RT.addNewLine(1)
+RT.appendText("___________________________________________")
+RT.addNewLine(2)
+//таб
+RT.appendText("Табельный: " + requestScope.TabNumber)
+RT.addNewLine(1)
+RT.appendText("___________________________________________")
+RT.addNewLine(2)
+
+//Дата выхода на работу
+RT.appendText("Дата выхода: " + requestScope.WorkDate)
+RT.addNewLine(1)
+RT.appendText("___________________________________________")
+RT.addNewLine(2)
+
+//Подразделение
+RT.appendText("Подразделение: " + requestScope.Department)
+RT.addNewLine(1)
+RT.appendText("___________________________________________")
+RT.addNewLine(2)
+
+//Руководитель
+
+RT.appendText("Руководитель: " + requestScope.leadership)
+RT.addNewLine(1)
+RT.appendText("___________________________________________")
+RT.addNewLine(2)
+
+//Необходимость в оборудовании
+RT.appendText("Необходимость в оборудовании: " + requestScope.Computer + "," + requestScope.Printer + "," + requestScope.telvn + "," + requestScope.callsity)
+RT.addNewLine(2)
+RT.appendText("___________________________________________")
+RT.addNewLine(2)
+
+//Подключение к информационным ресурсам
+
+RT.appendText("Подключение к информационным ресурсам: " + requestScope.Email + " , " + requestScope.inet + " , " + requestScope.mis + " , " + requestScope.nav + " , " + requestScope.lab)
+RT.addNewLine(2)
+RT.appendText("___________________________________________")
+RT.addNewLine(2)
+
+//Дополнительно
+
+RT.appendText("Дополнительно: " + requestScope.DopProgramm1 + "," + requestScope.DopProgramm2)
+RT.addNewLine(2)
+RT.appendText("___________________________________________")
+RT.addNewLine(2)
+
+//Ссылка на заявочную форму и все заявки
+
+RT.appendText("Посмотреть все заявки:(для перехода щелкните на ссылку:)"+ url.toString())
+RT.addNewLine(1)
+
+var dbS = session.getDatabase("scz5","gp/SendInfo.nsf") //конект к базе где лежат адреса
+
+var viewSett = dbS.getView("ForSettings")
+	
+	
+	var doc2 = viewSett.getFirstDocument(); 
+
+ var v = new java.util.Vector
+ 
+ 	var People_1 = doc2.getItemValueString("NewPeople_1");
+    var People_2 = doc2.getItemValueString("NewPeople_2");
+   	var People_3 = doc2.getItemValueString("NewPeople_3");
+    var People_4 = doc2.getItemValueString("NewPeople_4");
+    var People_5 = doc2.getItemValueString("NewPeople_5");
+    var People_6 = doc2.getItemValueString("NewPeople_6");
+    var People_7 = doc2.getItemValueString("NewPeople_7");
+   	var People_8 = doc2.getItemValueString("NewPeople_8");
+    var People_9 = doc2.getItemValueString("NewPeople_9");
+    var People_10 = doc2.getItemValueString("NewPeople_10");
+  
+ v.addElement(People_1);
+  v.addElement(People_2);
+   v.addElement(People_3);
+    v.addElement(People_4);
+     v.addElement(People_5);
+      v.addElement(People_6);
+       v.addElement(People_7);
+        v.addElement(People_8);
+         v.addElement(People_9);
+          v.addElement(People_10);
+       
+
+memo.save()
+memo.send(false,v) //отправляем для всех остальных
+
+
+
